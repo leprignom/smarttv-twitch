@@ -396,6 +396,8 @@ function Sidepannel_Scroll(skipAnimation) {
 
 function Sidepannel_handleKeyDown(event) {
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             Sidepannel_Hide();
             Main_SwitchScreenAction();
@@ -431,6 +433,7 @@ function Sidepannel_handleKeyDown(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
         case KEY_ENTER:
             if (!UserLiveFeed_loadingData) {
                 var doc = document.getElementById("side_panel");
@@ -451,6 +454,8 @@ function Sidepannel_handleKeyDown(event) {
 
 function Sidepannel_handleKeyDownMain(event) {
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
         case KEY_RIGHT:
             Sidepannel_Hide();
@@ -487,6 +492,7 @@ function Sidepannel_handleKeyDownMain(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
         case KEY_ENTER:
             Sidepannel_KeyEnter();
             break;

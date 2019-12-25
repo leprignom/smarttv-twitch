@@ -6,15 +6,15 @@ var PlayClip_IsJumping = false;
 var PlayClip_jumpCount = 0;
 var PlayClip_TimeToJump = 0;
 var PlayClip_isOn = false;
+var PlayClip_replay = false;
 var PlayClip_loadingDataTry = 0;
 var PlayClip_loadingDataTimeout = 2000;
-var PlayClip_loadingDataTryMax = 5;
+var PlayClip_loadingDataTryMax = 3;
 var PlayClip_quality = 'source';
 var PlayClip_qualityPlaying = PlayClip_quality;
 var PlayClip_qualityIndex = 0;
 var PlayClip_qualities = [];
 var PlayClip_playingUrl = '';
-var PlayClip_replay = false;
 var PlayClip_currentTime = 0;
 var PlayClip_offsettime = 0;
 var PlayClip_state = 0;
@@ -24,6 +24,7 @@ var PlayClip_PlayerCheckCounter = 0;
 var PlayClip_PlayerCheckQualityChanged = false;
 var PlayClip_PlayerCheckRun = false;
 var PlayClip_Buffer = 2000;
+var PlayClip_loadData410 = false;
 
 var PlayClip_jumpTimers = [0, 5];
 var PlayClip_DurationSeconds = 0;
@@ -85,6 +86,7 @@ function PlayClip_Start() {
     PlayClip_state = 0;
     PlayClip_currentTime = 0;
     PlayClip_qualityIndex = 2;
+    UserLiveFeed_PreventHide = false;
     PlayClip_UpdateNext();
     Play_EndSet(3);
     Play_IsWarning = false;
@@ -101,15 +103,43 @@ function PlayClip_Start() {
     PlayClip_TimeToJump = 0;
     PlayClip_isOn = true;
 
-    PlayClip_loadData();
+    if (!PlayClip_replay) PlayClip_loadData();
+    else PlayClip_qualityChanged();
+    PlayClip_replay = false;
+
     document.body.removeEventListener("keyup", Main_handleKeyUp);
 
     PlayClip_loadingtreamerInfoTry = 0;
     PlayClip_GetStreamerInfo();
+    PlayVod_loadingInfoDataTry = 0;
+    if (PlayClip_HasVOD) PlayClip_updateVodInfo();
+    else {
+        Main_textContent("end_vod_name_text", '');
+        Main_innerHTML("end_vod_title_text", '');
+        Play_controls[Play_controlsOpenVod].setLable('');
+    }
+    Play_controls[Play_controlsChanelCont].setLable(Main_values.Main_selectedChannelDisplayname);
+    Play_controls[Play_controlsGameCont].setLable(Main_values.Play_gameSelected);
+}
+
+function PlayClip_updateVodInfo() {
+    var theUrl = Main_kraken_api + 'videos/' + Main_values.ChannelVod_vodId + Main_TwithcV5Flag_I;
+    BasexmlHttpGet(theUrl, PlayVod_loadingInfoDataTimeout, 2, null, PlayClip_updateVodInfoSucess, PlayClip_updateVodInfoError, false);
+}
+
+function PlayClip_updateVodInfoSucess(response) {
+    ChannelVod_title = twemoji.parse(JSON.parse(response).title, false, false);
+    Main_innerHTML("end_vod_title_text", ChannelVod_title);
+    Play_controls[Play_controlsOpenVod].setLable(ChannelVod_title);
+}
+
+function PlayClip_updateVodInfoError() {
+    PlayVod_loadingInfoDataTry++;
+    if (PlayVod_loadingInfoDataTry < PlayVod_loadingInfoDataTryMax) PlayClip_updateVodInfo();
 }
 
 function PlayClip_GetStreamerInfo() {
-    var theUrl = 'https://api.twitch.tv/kraken/channels/' + Main_values.Main_selectedChannel_id + Main_TwithcV5Flag_I;
+    var theUrl = Main_kraken_api + 'channels/' + Main_values.Main_selectedChannel_id + Main_TwithcV5Flag_I;
 
     BasexmlHttpGet(theUrl, 10000, 2, null, PlayClip_GetStreamerInfoSuccess, PlayClip_GetStreamerInfoSuccessError);
 }
@@ -125,15 +155,59 @@ function PlayClip_GetStreamerInfoSuccess(response) {
 }
 
 function PlayClip_loadData() {
+    if (PlayClip_loadData410) {
+        PlayClip_loadDataSuccess410();
+        return;
+    }
     PlayClip_loadingDataTry = 0;
     PlayClip_loadingDataTimeout = 2000;
     PlayClip_loadDataRequest();
 }
 
 function PlayClip_loadDataRequest() {
-    var theUrl = (!Main_IsNotBrowser ? proxyurl : '') + 'https://clips.twitch.tv/api/v2/clips/' + ChannelClip_playUrl + '/status';
+    var theUrl = 'https://gql.twitch.tv/gql';
 
-    BasexmlHttpGet(theUrl, PlayClip_loadingDataTimeout, 1, null, PlayClip_QualityGenerate, PlayClip_loadDataError, true);
+    var xmlHttp = new XMLHttpRequest();
+
+    xmlHttp.open("POST", theUrl, true);
+    xmlHttp.timeout = PlayClip_loadingDataTimeout;
+    xmlHttp.setRequestHeader(Main_clientIdHeader, Main_Headers_Back[0][1]);
+    xmlHttp.setRequestHeader('Content-Type', 'application/json');
+
+    xmlHttp.ontimeout = function() {};
+
+    xmlHttp.onreadystatechange = function() {
+        if (xmlHttp.readyState === 4) {
+            if (xmlHttp.status === 200) {
+                PlayClip_QualityGenerate(xmlHttp.responseText);
+            } else if (xmlHttp.status === 410) {
+                PlayClip_loadData410 = true;
+                window.setTimeout(function() {
+                    PlayClip_loadData410 = false;
+                }, 60 * 60 * 1000);//try again after 1h
+                PlayClip_loadDataSuccess410();
+            } else {
+                PlayClip_loadDataError();
+            }
+        }
+    };
+
+    //    xmlHttp.send('{"query":"\\n query getClipStatus($slug:ID!) {\\n clip(slug: $slug) {\\n videoQualities {\\n frameRate\\n quality\\n sourceURL\\n }\\n }\\n }\\n","variables":{"slug":"' + 
+    //    ChannelClip_playUrl +'"}}');
+
+    xmlHttp.send('{"query":"\\n {\\n clip(slug: \\"' + ChannelClip_playUrl +
+        '\\") {\\n videoQualities {\\n frameRate\\n quality\\n sourceURL\\n }\\n }\\n }\\n"}');
+}
+
+function PlayClip_loadDataSuccess410() {
+    PlayClip_qualities = [];
+    PlayClip_qualities.push({
+        'id': 'Auto | mp4',
+        'url': ChannelClip_playUrl2
+    });
+
+    PlayClip_state = PlayClip_STATE_PLAYING;
+    PlayClip_qualityChanged();
 }
 
 function PlayClip_loadDataError() {
@@ -151,13 +225,13 @@ function PlayClip_loadDataError() {
 
 function PlayClip_loadDataSuccessFake() {
     PlayClip_qualities = [{
-            'id': 'Auto',
-            'url': ''
-        },
-        {
-            'id': '1080p60 | source | mp4',
-            'url': 'https://fake'
-        },
+        'id': 'Auto',
+        'url': ''
+    },
+    {
+        'id': '1080p60 | source | mp4',
+        'url': 'https://fake'
+    },
     ];
     PlayClip_state = PlayClip_STATE_PLAYING;
     PlayClip_qualityChanged();
@@ -217,20 +291,23 @@ var PlayClip_listener = {
 function PlayClip_QualityGenerate(response) {
     PlayClip_qualities = [];
 
-    response = JSON.parse(response).quality_options;
+    response = JSON.parse(response);
 
-    for (var i = 0; i < response.length; i++) {
+    if (response && response.hasOwnProperty('data') && response.data.hasOwnProperty('clip')) {
+        response = response.data.clip.videoQualities;
+        for (var i = 0; i < response.length; i++) {
 
-        if (!PlayClip_qualities.length) {
-            PlayClip_qualities.push({
-                'id': response[i].quality + 'p' + PlayClip_FrameRate(response[i].frame_rate) + ' | source | mp4',
-                'url': response[i].source
-            });
-        } else {
-            PlayClip_qualities.push({
-                'id': response[i].quality + 'p' + PlayClip_FrameRate(response[i].frame_rate) + ' | mp4',
-                'url': response[i].source
-            });
+            if (!PlayClip_qualities.length) {
+                PlayClip_qualities.push({
+                    'id': response[i].quality + 'p' + PlayClip_FrameRate(response[i].frameRate) + ' | source | mp4',
+                    'url': response[i].sourceURL
+                });
+            } else {
+                PlayClip_qualities.push({
+                    'id': response[i].quality + 'p' + PlayClip_FrameRate(response[i].frameRate) + ' | mp4',
+                    'url': response[i].sourceURL
+                });
+            }
         }
     }
 
@@ -268,6 +345,7 @@ function PlayClip_qualityChanged() {
     PlayClip_replay = false;
     Play_onPlayerCounter = 0;
     PlayClip_onPlayer();
+    //Play_PannelEndStart(3);
 }
 
 function PlayClip_onPlayer() {
@@ -410,7 +488,7 @@ function PlayClip_PreshutdownStream() {
     PlayClip_isOn = false;
     Chat_Clear();
     Play_ClearPlayer();
-    UserLiveFeed_Hide();
+    UserLiveFeed_Hide(true);
     document.body.removeEventListener("keydown", PlayClip_handleKeyDown);
     document.removeEventListener('visibilitychange', PlayClip_Resume);
     ChannelVod_vodOffset = 0;
@@ -583,9 +661,16 @@ function PlayClip_OpenVod() {
     }
 }
 
+function PlayClip_OpenLiveStream() {
+    PlayClip_PreshutdownStream();
+    Main_OpenLiveStream(Play_FeedPos, UserLiveFeed_ids, PlayClip_handleKeyDown);
+}
+
 function PlayClip_handleKeyDown(e) {
     if (PlayClip_state !== PlayClip_STATE_PLAYING) {
         switch (e.keyCode) {
+            case KEY_RETURN_Q:
+            case KEY_KEYBOARD_BACKSPACE:
             case KEY_RETURN:
                 if (Play_ExitDialogVisible() || Play_SingleClickExit) {
                     Play_CleanHideExit();
@@ -600,7 +685,7 @@ function PlayClip_handleKeyDown(e) {
     } else {
         switch (e.keyCode) {
             case KEY_LEFT:
-                if (UserLiveFeed_isFeedShow()) {
+                if (UserLiveFeed_isFeedShow() && (!Play_EndFocus || !Play_isEndDialogVisible())) {
                     if (Play_FeedPos && !UserLiveFeed_loadingData) {
                         UserLiveFeed_FeedRemoveFocus();
                         Play_FeedPos--;
@@ -638,7 +723,7 @@ function PlayClip_handleKeyDown(e) {
                 }
                 break;
             case KEY_RIGHT:
-                if (UserLiveFeed_isFeedShow()) {
+                if (UserLiveFeed_isFeedShow() && (!Play_EndFocus || !Play_isEndDialogVisible())) {
                     if (Play_FeedPos < (UserLiveFeed_GetSize() - 1) && !UserLiveFeed_loadingData) {
                         UserLiveFeed_FeedRemoveFocus();
                         Play_FeedPos++;
@@ -676,8 +761,14 @@ function PlayClip_handleKeyDown(e) {
                 } else PlayClip_showPanel();
                 break;
             case KEY_UP:
-                if (Play_isEndDialogVisible()) Play_EndTextClear();
-                else if (Play_isPanelShown()) {
+                if (Play_isEndDialogVisible()) {
+                    Play_EndTextClear();
+                    document.body.removeEventListener("keydown", PlayClip_handleKeyDown, false);
+                    document.body.addEventListener("keyup", Play_handleKeyUp, false);
+                    Play_EndUpclear = false;
+                    Play_EndUpclearCalback = PlayClip_handleKeyDown;
+                    Play_EndUpclearID = window.setTimeout(Play_keyUpEnd, 250);
+                } else if (Play_isPanelShown()) {
                     Play_clearHidePanel();
                     if (PlayVod_PanelY < 2) {
                         PlayVod_PanelY--;
@@ -689,7 +780,7 @@ function PlayClip_handleKeyDown(e) {
                 else PlayClip_showPanel();
                 break;
             case KEY_DOWN:
-                if (Play_isEndDialogVisible()) Play_EndTextClear();
+                if (Play_isEndDialogVisible()) Play_EndDialogUpDown();
                 else if (Play_isPanelShown()) {
                     Play_clearHidePanel();
                     if (PlayVod_PanelY < 2) {
@@ -703,22 +794,31 @@ function PlayClip_handleKeyDown(e) {
                 } else PlayClip_showPanel();
                 break;
             case KEY_ENTER:
-                if (Play_isEndDialogVisible()) Play_EndDialogPressed(3);
-                else if (Play_isPanelShown()) {
+                if (Play_isEndDialogVisible()) {
+                    if (Play_EndFocus) Play_EndDialogPressed(3);
+                    else {
+                        Play_EndDialogEnter = 3;
+                        Play_EndUpclearCalback = PlayClip_handleKeyDown;
+                        Play_SavePlayData();
+                        Main_OpenLiveStream(Play_FeedPos, UserLiveFeed_ids, Play_handleKeyDown);
+                    }
+                } else if (Play_isPanelShown()) {
                     Play_clearHidePanel();
                     if (!PlayVod_PanelY) {
                         if (PlayVod_addToJump) PlayVod_jump();
                     } else if (PlayVod_PanelY === 1) PlayClip_Enter();
                     else Play_BottomOptionsPressed(3);
                     PlayClip_setHidePanel();
-                } else if (UserLiveFeed_isFeedShow()) {
-                    PlayClip_PreshutdownStream();
-                    Main_OpenLiveStream(Play_FeedPos, UserLiveFeed_ids, Play_handleKeyDown);
-                } else PlayClip_showPanel();
+                } else if (UserLiveFeed_isFeedShow()) Play_CheckIfIsLiveStart(PlayClip_OpenLiveStream);
+                else PlayClip_showPanel();
                 break;
+            case KEY_RETURN_Q:
+            case KEY_KEYBOARD_BACKSPACE:
             case KEY_RETURN:
+                if (Play_isEndDialogVisible()) Play_EndTextClear();
+
                 if (Play_isPanelShown()) PlayClip_hidePanel();
-                else if (UserLiveFeed_isFeedShow()) UserLiveFeed_Hide();
+                else if (UserLiveFeed_isFeedShow() && !Play_isEndDialogVisible()) UserLiveFeed_Hide();
                 else {
                     if (Play_ExitDialogVisible() || Play_SingleClickExit) {
                         Play_CleanHideExit();
@@ -741,6 +841,7 @@ function PlayClip_handleKeyDown(e) {
                 }
                 break;
             case KEY_PLAYPAUSE:
+            case KEY_KEYBOARD_SPACE:
                 if (PlayClip_HasVOD && !Main_values.Play_ChatForceDisable) {
                     if (Play_isNotplaying()) Chat_Play(Chat_Id);
                     else Chat_Pause();

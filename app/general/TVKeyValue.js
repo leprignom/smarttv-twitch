@@ -17,6 +17,7 @@ var KEY_PG_UP = 427; //KEY_CHANNELUP
 var KEY_REFRESH = 458; //KEY_CHANNELGUIDE
 var KEY_INFO = 457;
 var KEY_RETURN = 10009;
+var KEY_RETURN_Q = 81; //key q
 
 var KEY_KEYBOARD_BACKSPACE = 8; // http://developer.samsung.com/tv/develop/guides/user-interaction/keyboardime
 var KEY_KEYBOARD_DONE = 65376;
@@ -29,31 +30,22 @@ var KEY_YELLOW = 405;
 var KEY_BLUE = 406;
 var KEY_KEYBOARD_CANCEL = 65385;
 
-var istizen = false;
+var TV_Keys = ['ChannelUp',
+    'ChannelDown',
+    'MediaRewind',
+    'MediaFastForward',
+    'MediaStop',
+    'MediaPlayPause',
+    'MediaPlay',
+    'MediaPause',
+    'ColorF0Red',
+    'ColorF1Green',
+    'ColorF2Yellow',
+    'ColorF3Blue',
+    'Guide',
+    'Info'];
 
-try {
-    istizen = tizen !== null;
-} catch (e) {
-
-}
-
-if (istizen) {
-    //Registering all used keys
-    tizen.tvinputdevice.registerKey("ChannelUp");
-    tizen.tvinputdevice.registerKey("ChannelDown");
-    tizen.tvinputdevice.registerKey("MediaRewind");
-    tizen.tvinputdevice.registerKey("MediaFastForward");
-    tizen.tvinputdevice.registerKey("MediaStop");
-    tizen.tvinputdevice.registerKey("MediaPlayPause");
-    tizen.tvinputdevice.registerKey("MediaPlay");
-    tizen.tvinputdevice.registerKey("MediaPause");
-    tizen.tvinputdevice.registerKey("ColorF0Red");
-    tizen.tvinputdevice.registerKey("ColorF1Green");
-    tizen.tvinputdevice.registerKey("ColorF2Yellow");
-    tizen.tvinputdevice.registerKey("ColorF3Blue");
-    tizen.tvinputdevice.registerKey("Guide");
-    tizen.tvinputdevice.registerKey("Info");
-} else {
+function TVKeyValue_fixKey() {
     KEY_RETURN = 49;
     KEY_PG_DOWN = 34;
     KEY_PG_UP = 33;
@@ -70,4 +62,13 @@ if (istizen) {
     KEY_STOP = 73; //key I
     KEY_MEDIAREWIND = 79; //key O
     KEY_MEDIAFASTFORWARD = 80; //key P
+}
+
+function TVKeyValue_regKey(key) {
+    try {
+        tizen.tvinputdevice.registerKey(key);
+    } catch (e) {
+        console.log('Registering key ' + key + ' error');
+        console.log(e);
+    }
 }

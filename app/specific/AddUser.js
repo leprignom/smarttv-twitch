@@ -27,6 +27,8 @@ function AddUser_exit() {
 function AddUser_handleKeyDown(event) {
     if (AddUser_loadingData || AddUser_keyBoardOn || Main_values.Main_Go !== Main_addUser) return;
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             if (Main_isAboutDialogShown()) Main_HideAboutDialog();
             else if (Main_isControlsDialogShown()) Main_HideControlsDialog();
@@ -40,6 +42,7 @@ function AddUser_handleKeyDown(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
         case KEY_ENTER:
             AddUser_inputFocus();
             break;
@@ -83,6 +86,7 @@ function AddUser_KeyboardEvent(event) {
     if (AddUser_loadingData || Main_values.Main_Go !== Main_addUser) return;
 
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
         case KEY_RETURN:
             if (Main_isAboutDialogShown()) Main_HideAboutDialog();
             else if (Main_isControlsDialogShown()) Main_HideControlsDialog();
@@ -133,7 +137,7 @@ function AddUser_KeyboardEvent(event) {
 }
 
 function AddUser_loadDataRequest() {
-    var theUrl = 'https://api.twitch.tv/kraken/users?login=' + encodeURIComponent(AddUser_Username) + Main_TwithcV5Flag;
+    var theUrl = Main_kraken_api + 'users?login=' + encodeURIComponent(AddUser_Username) + Main_TwithcV5Flag;
 
     BasexmlHttpGet(theUrl, AddUser_loadingDataTimeout, 2, null, AddUser_loadDataRequestSuccess, AddUser_loadDataError);
 }
@@ -203,7 +207,7 @@ function AddUser_UserIsSet() {
 }
 
 function AddUser_UpdateUser(position, tryes) {
-    var theUrl = 'https://api.twitch.tv/kraken/users?login=' + encodeURIComponent(AddUser_UsernameArray[position].name) + Main_TwithcV5Flag;
+    var theUrl = Main_kraken_api + 'users?login=' + encodeURIComponent(AddUser_UsernameArray[position].name) + Main_TwithcV5Flag;
     var xmlHttp = new XMLHttpRequest();
 
     xmlHttp.open("GET", theUrl, true);

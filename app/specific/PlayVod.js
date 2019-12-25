@@ -80,6 +80,7 @@ function PlayVod_Start() {
     PlayVod_jumpSteps(Play_DefaultjumpTimers[1]);
     PlayVod_state = Play_STATE_LOADING_TOKEN;
     PlayClip_HasVOD = true;
+    UserLiveFeed_PreventHide = false;
     ChannelVod_vodOffset = 0;
     Main_values.Play_isHost = false;
     PlayClip_HideShowNext(0, 0);
@@ -118,7 +119,8 @@ function PlayVod_PosStart() {
     Main_SaveValues();
 
     PlayVod_SaveOffsetId = window.setInterval(PlayVod_SaveOffset, 60000);
-    new Image().src = Play_IncrementView;
+    //View bot is blocking it
+    //new Image().src = Play_IncrementView;
 
     PlayVod_PlayerCheckCounter = 0;
     PlayVod_PlayerCheckCount = 0;
@@ -136,9 +138,18 @@ function PlayVod_PosStart() {
     Play_jumping = false;
     PlayVod_isOn = true;
     PlayVod_WasSubChekd = false;
-    PlayVod_loadData();
+
+    if (!PlayVod_replay) PlayVod_loadData();
+    else {
+        PlayVod_state = Play_STATE_PLAYING;
+        PlayVod_qualityChanged();
+    }
+
     Play_EndSet(2);
     document.body.removeEventListener("keyup", Main_handleKeyUp);
+
+    Play_controls[Play_controlsChanelCont].setLable(Main_values.Main_selectedChannelDisplayname);
+    Play_controls[Play_controlsGameCont].setLable(Main_values.Play_gameSelected);
 }
 
 function PlayVod_PrepareLoad() {
@@ -163,7 +174,7 @@ function PlayVod_updateStreamerInfoValues() {
 }
 
 function PlayVod_updateVodInfo() {
-    var theUrl = 'https://api.twitch.tv/kraken/videos/' + Main_values.ChannelVod_vodId + Main_TwithcV5Flag_I;
+    var theUrl = Main_kraken_api + 'videos/' + Main_values.ChannelVod_vodId + Main_TwithcV5Flag_I;
     BasexmlHttpGet(theUrl, PlayVod_loadingInfoDataTimeout, 2, null, PlayVod_updateVodInfoPannel, PlayVod_updateVodInfoError, false);
 }
 
@@ -178,6 +189,8 @@ function PlayVod_updateVodInfoError() {
 function PlayVod_updateVodInfoPannel(response) {
     response = JSON.parse(response);
 
+    ChannelVod_title = twemoji.parse(response.title, false, true);
+
     //TODO add a warning about muted segments
     //if (response.muted_segments) console.log(response.muted_segments);
 
@@ -185,7 +198,7 @@ function PlayVod_updateVodInfoPannel(response) {
     Play_partnerIcon(Main_values.Main_selectedChannelDisplayname, Main_values.Main_selectedChannelPartner, false,
         '[' + (response.channel.broadcaster_language).toUpperCase() + ']');
 
-    Main_innerHTML("stream_info_title", twemoji.parse(response.title, false, true));
+    Main_innerHTML("stream_info_title", ChannelVod_title);
     Main_innerHTML("stream_info_game", (response.game !== "" && response.game !== null ? STR_STARTED + STR_PLAYING +
         response.game : ""));
 
@@ -213,7 +226,11 @@ function PlayVod_updateVodInfoPannel(response) {
         AddCode_Channel_id = Main_values.Main_selectedChannel_id;
         AddCode_CheckFallow();
     } else Play_hideFallow();
-    new Image().src = response.increment_view_count_url;
+
+    //View bot is blocking it
+    //new Image().src = response.increment_view_count_url;
+
+    Play_EndSet(2);
 }
 
 function PlayVod_Resume() {
@@ -231,6 +248,7 @@ function PlayVod_Resume() {
                 Main_values.vodOffset = Play_avplay.getCurrentTime() / 1000;
             }
             Play_ClearPlayer();
+            UserLiveFeed_Hide(true);
             window.clearInterval(PlayVod_streamCheckId);
             window.clearInterval(PlayVod_SaveOffsetId);
         }
@@ -301,7 +319,7 @@ function PlayVod_loadDataRequest() {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", theUrl, true);
     xmlHttp.timeout = Play_loadingDataTimeout;
-    xmlHttp.setRequestHeader(Main_clientIdHeader, Play_410ERROR ? Main_BackupclientId : Main_clientId);
+    xmlHttp.setRequestHeader(Main_clientIdHeader, Play_410ERROR ? Main_Headers_Back[0][1] : Main_clientId);
 
     xmlHttp.ontimeout = function() {};
 
@@ -428,7 +446,7 @@ function PlayVod_isSub() {
         PlayVod_loadData();
     } else {
         Play_HideBufferDialog();
-        Play_showWarningDialog(STR_IS_SUB_ONLY + STR_IS_SUB_IS_SUB);
+        Play_showWarningDialog(STR_IS_SUB_ONLY + STR_IS_SUB_IS_SUB + STR_410_FEATURING);
         window.setTimeout(function() {
             if (PlayVod_isOn) PlayVod_shutdownStream();
         }, 4000);
@@ -457,6 +475,7 @@ function PlayVod_qualityChanged() {
     PlayVod_SetHtmlQuality('stream_quality', true);
     Play_onPlayerCounter = 0;
     PlayVod_onPlayer();
+    //Play_PannelEndStart(2);
 }
 
 var PlayVod_listener = {
@@ -643,7 +662,7 @@ function PlayVod_PreshutdownStream(saveOffset) {
     window.clearInterval(PlayVod_updateStreamInfId);
     Main_values.Play_WasPlaying = 0;
     Chat_Clear();
-    UserLiveFeed_Hide();
+    UserLiveFeed_Hide(true);
     Play_ClearPlayer();
     PlayVod_ClearVod();
 }
@@ -982,9 +1001,16 @@ function PlayVod_DialogPressed(fromStart) {
     });
 }
 
+function PlayVod_OpenLiveStream() {
+    PlayVod_PreshutdownStream(true);
+    Main_OpenLiveStream(Play_FeedPos, UserLiveFeed_ids, PlayVod_handleKeyDown);
+}
+
 function PlayVod_handleKeyDown(e) {
     if (PlayVod_state !== Play_STATE_PLAYING && !Play_isVodDialogShown()) {
         switch (e.keyCode) {
+            case KEY_RETURN_Q:
+            case KEY_KEYBOARD_BACKSPACE:
             case KEY_RETURN:
                 if (Play_ExitDialogVisible() || Play_SingleClickExit) {
                     Play_CleanHideExit();
@@ -999,7 +1025,7 @@ function PlayVod_handleKeyDown(e) {
     } else {
         switch (e.keyCode) {
             case KEY_LEFT:
-                if (UserLiveFeed_isFeedShow()) {
+                if (UserLiveFeed_isFeedShow() && (!Play_EndFocus || !Play_isEndDialogVisible())) {
                     if (Play_FeedPos && !UserLiveFeed_loadingData) {
                         UserLiveFeed_FeedRemoveFocus();
                         Play_FeedPos--;
@@ -1036,7 +1062,7 @@ function PlayVod_handleKeyDown(e) {
                 }
                 break;
             case KEY_RIGHT:
-                if (UserLiveFeed_isFeedShow()) {
+                if (UserLiveFeed_isFeedShow() && (!Play_EndFocus || !Play_isEndDialogVisible())) {
                     if (Play_FeedPos < (UserLiveFeed_GetSize() - 1) && !UserLiveFeed_loadingData) {
                         UserLiveFeed_FeedRemoveFocus();
                         Play_FeedPos++;
@@ -1073,8 +1099,14 @@ function PlayVod_handleKeyDown(e) {
                 } else if (!Play_isVodDialogShown()) PlayVod_showPanel(true);
                 break;
             case KEY_UP:
-                if (Play_isEndDialogVisible()) Play_EndTextClear();
-                else if (Play_isPanelShown() && !Play_isVodDialogShown()) {
+                if (Play_isEndDialogVisible()) {
+                    Play_EndTextClear();
+                    document.body.removeEventListener("keydown", PlayVod_handleKeyDown, false);
+                    document.body.addEventListener("keyup", Play_handleKeyUp, false);
+                    Play_EndUpclear = false;
+                    Play_EndUpclearCalback = PlayVod_handleKeyDown;
+                    Play_EndUpclearID = window.setTimeout(Play_keyUpEnd, 250);
+                } else if (Play_isPanelShown() && !Play_isVodDialogShown()) {
                     Play_clearHidePanel();
                     if (PlayVod_PanelY < 2) {
                         PlayVod_PanelY--;
@@ -1086,7 +1118,7 @@ function PlayVod_handleKeyDown(e) {
                 else if (!Play_isVodDialogShown()) PlayVod_showPanel(true);
                 break;
             case KEY_DOWN:
-                if (Play_isEndDialogVisible()) Play_EndTextClear();
+                if (Play_isEndDialogVisible()) Play_EndDialogUpDown();
                 else if (Play_isPanelShown() && !Play_isVodDialogShown()) {
                     Play_clearHidePanel();
                     if (PlayVod_PanelY < 2) {
@@ -1101,8 +1133,15 @@ function PlayVod_handleKeyDown(e) {
                 break;
             case KEY_ENTER:
                 if (Play_isVodDialogShown()) PlayVod_DialogPressed(PlayVod_VodPositions);
-                else if (Play_isEndDialogVisible()) Play_EndDialogPressed(2);
-                else if (Play_isPanelShown()) {
+                else if (Play_isEndDialogVisible()) {
+                    if (Play_EndFocus) Play_EndDialogPressed(2);
+                    else {
+                        Play_EndDialogEnter = 2;
+                        Play_EndUpclearCalback = PlayVod_handleKeyDown;
+                        Play_SavePlayData();
+                        Main_OpenLiveStream(Play_FeedPos, UserLiveFeed_ids, Play_handleKeyDown);
+                    }
+                } else if (Play_isPanelShown()) {
                     Play_clearHidePanel();
                     if (!PlayVod_PanelY) {
                         if (PlayVod_addToJump) PlayVod_jump();
@@ -1114,11 +1153,11 @@ function PlayVod_handleKeyDown(e) {
                         if (!Play_isEndDialogVisible()) Play_KeyPause(2);
                     } else Play_BottomOptionsPressed(2);
                     PlayVod_setHidePanel();
-                } else if (UserLiveFeed_isFeedShow()) {
-                    PlayVod_PreshutdownStream(true);
-                    Main_OpenLiveStream(Play_FeedPos, UserLiveFeed_ids, Play_handleKeyDown);
-                } else PlayVod_showPanel(true);
+                } else if (UserLiveFeed_isFeedShow()) Play_CheckIfIsLiveStart(PlayVod_OpenLiveStream);
+                else PlayVod_showPanel(true);
                 break;
+            case KEY_RETURN_Q:
+            case KEY_KEYBOARD_BACKSPACE:
             case KEY_RETURN:
                 Play_KeyReturn(true);
                 break;
@@ -1135,6 +1174,7 @@ function PlayVod_handleKeyDown(e) {
                 }
                 break;
             case KEY_PLAYPAUSE:
+            case KEY_KEYBOARD_SPACE:
                 if (!Main_values.Play_ChatForceDisable) {
                     if (Play_isNotplaying()) Chat_Play(Chat_Id);
                     else Chat_Pause();

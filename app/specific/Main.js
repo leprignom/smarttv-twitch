@@ -68,6 +68,7 @@ var Main_values = {
     "DeviceBitrateCheck": false,
 };
 
+var Main_Force = "4mv6wki5h1ko";
 var Main_LastClickFinish = true;
 var Main_addFocusFinish = true;
 var Main_newUsercode = 0;
@@ -84,6 +85,7 @@ var Main_addFocusVideoOffset = 0;
 var Main_FirstRun = true;
 var Main_FirstLoad = false;
 var Main_RunningTime = 0;
+var Main_Hash = "ncx6brgo";
 
 //The values of thumbnail and related for it screen type
 var Main_ReloadLimitOffsetGames = 1.35;
@@ -101,8 +103,8 @@ var Main_ItemsLimitChannel = 48;
 var Main_ColoumnsCountChannel = 6;
 var Main_ItemsReloadLimitChannel = Math.floor((Main_ItemsLimitChannel / Main_ColoumnsCountChannel) / Main_ReloadLimitOffsetVideos);
 
+var Main_kraken_api = 'https://api.twitch.tv/kraken/';
 var Main_clientId = "ypvnuqrh98wqz1sr0ov3fgfu4jh1yx";
-var Main_BackupclientId = "kimne78kx3ncx6brgo4mv6wki5h1ko";
 var Main_clientIdHeader = 'Client-ID';
 var Main_AcceptHeader = 'Accept';
 var Main_Authorization = 'Authorization';
@@ -116,7 +118,7 @@ var Main_DataAttribute = 'data_attribute';
 
 var Main_version = 401;
 var Main_stringVersion_Min = '4.0.1';
-var Main_minversion = '111219';
+var Main_minversion = '121819';
 var Main_versionTag = Main_stringVersion_Min + '-' + Main_minversion;
 var Main_IsNotBrowserVersion = '';
 var Main_ClockOffset = 0;
@@ -125,10 +127,11 @@ var Main_randomimg = '?' + Math.random();
 var proxyurl = "https://cors-anywhere.herokuapp.com/";
 var Main_updateUserFeedId;
 var Main_vp9supported = false; //TODO check tizen support
+var Main_Fix = "kimne78kx3";
 //Variable initialization end
 
 // this function will be called only once the first time the app startup
-Main_Start();
+if (!Main_isReleased) Main_Start();
 
 function Main_Start() {
     if (document.readyState === "loading") {
@@ -144,7 +147,8 @@ function Main_loadTranslations(language) {
     Main_Checktylesheet();
 
     Main_ready(function() {
-        if (Main_isReleased) document.body.innerHTML = STR_BODY;
+        // var STR_BODY is defined by the release_maker script
+        if (Main_isReleased) document.body.innerHTML = STR_BODY; // jshint ignore:line
 
         Main_ready(function() {
             try {
@@ -160,6 +164,7 @@ function Main_loadTranslations(language) {
                 console.log('Main_isReleased: ' + Main_isReleased);
                 console.log('Main_isDebug: ' + Main_isDebug);
                 console.log('Main_isBrowser: ' + !Main_IsNotBrowser);
+                TVKeyValue_fixKey();
             }
             Main_showLoadDialog();
 
@@ -204,6 +209,11 @@ function Main_initWindows() {
     Main_GoBefore = Main_values.Main_Go;
 
     Main_ready(function() {
+        if (Main_IsNotBrowser) {
+            console.log('TVKeyValue_regKey started');
+            for (var key in TV_Keys) TVKeyValue_regKey(TV_Keys[key]);
+        }
+
         Chat_Preinit();
         Play_PreStart();
 
@@ -794,7 +804,7 @@ function Main_openStream() {
     Main_HideElement('scene1');
     Main_ShowElement('scene2');
     Play_hidePanel();
-    Play_HideEndDialog();
+    if (!Play_EndDialogEnter) Play_HideEndDialog();
     Main_ready(Play_Start);
 }
 
@@ -818,6 +828,7 @@ function Main_OpenClip(id, idsArray, handleKeyDownFunction) {
     ChannelClip_createdAt = ChannelClip_playUrl[11];
     ChannelClip_views = ChannelClip_playUrl[12];
 
+    ChannelClip_playUrl2 = ChannelClip_playUrl[13].split("-preview")[0] + ".mp4";
     ChannelClip_playUrl = ChannelClip_playUrl[0];
 
     document.body.addEventListener("keydown", PlayClip_handleKeyDown, false);
@@ -974,6 +985,8 @@ function Main_updateUserFeed() {
 
 function Main_ExitDialog(event) {
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             Main_HideExitDialog();
             break;
@@ -1062,7 +1075,7 @@ function Main_getItemBool(item, default_value) {
 // use http://www.fileformat.info/info/unicode/char/16EB/index.html
 // Replace "16EB" with is the char ᛫ by the result of "string.charCodeAt(i).toString(16).toUpperCase()"
 // To see supported fonts and etc info about the unknown char
-function Main_PrintUnicode(string) { // jshint ignore:line
+function Main_PrintUnicode(string) {
     console.log(string);
     for (var i = 0; i < string.length; i++)
         console.log('Character is: ' + string.charAt(i) + " it's Unicode is: \\u" + string.charCodeAt(i).toString(16).toUpperCase());
@@ -1070,12 +1083,6 @@ function Main_PrintUnicode(string) { // jshint ignore:line
 
 var Main_Headers = [
     [Main_clientIdHeader, Main_clientId],
-    [Main_AcceptHeader, Main_TwithcV5Json],
-    [Main_Authorization, null]
-];
-
-var Main_Headers_Back = [
-    [Main_clientIdHeader, Main_BackupclientId],
     [Main_AcceptHeader, Main_TwithcV5Json],
     [Main_Authorization, null]
 ];
@@ -1110,6 +1117,12 @@ function BasexmlHttpGet(theUrl, Timeout, HeaderQuatity, access_token, callbackSu
     xmlHttp.send(null);
 }
 
+var Main_Headers_Back = [
+    [Main_clientIdHeader, Main_Fix + Main_Hash + Main_Force],
+    [Main_AcceptHeader, Main_TwithcV5Json],
+    [Main_Authorization, null]
+];
+
 function BasexmlHttpGetBack(theUrl, Timeout, HeaderQuatity, access_token, callbackSucess, calbackError) {
     var xmlHttp = new XMLHttpRequest();
 
@@ -1139,55 +1152,6 @@ function BasexmlHttpGetBack(theUrl, Timeout, HeaderQuatity, access_token, callba
 
     xmlHttp.send(null);
 }
-
-//Duplicated (BasehttpPost === BasehttpGet minus the post part ) as the android side may not be there and is not needed yet
-//function BasehttpPost(theUrl, Timeout, HeaderQuatity, access_token, callbackSucess, calbackError, useProxy) { // jshint ignore:line
-//    if (Main_IsNotBrowser) BasexmlHttpPost(theUrl, Timeout, HeaderQuatity, access_token, callbackSucess, calbackError);
-//    else BasexmlHttpGet(theUrl, Timeout, HeaderQuatity, access_token, callbackSucess, calbackError, useProxy);
-//}
-
-//function BasexmlHttpPost(theUrl, Timeout, HeaderQuatity, access_token, callbackSucess, calbackError) {
-//    var xmlHttp = Android.mreadUrl(theUrl, Timeout, HeaderQuatity, access_token, true);
-
-//    if (xmlHttp) xmlHttp = JSON.parse(xmlHttp);
-//    else {
-//        calbackError();
-//        return;
-//    }
-
-//    if (xmlHttp.status === 200) {
-//        callbackSucess(xmlHttp.responseText);
-//    } else {
-//        calbackError();
-//    }
-//}
-
-//function BasexmlHttpPost(theUrl, Timeout, HeaderQuatity, access_token, callbackSucess, calbackError, useProxy) {
-//    var xmlHttp = new XMLHttpRequest();
-
-//    xmlHttp.open("POST", (useProxy ? proxyurl : '') + theUrl, true);
-//    xmlHttp.timeout = Timeout;
-
-//    Main_Headers[2][1] = access_token;
-
-//    for (var i = 0; i < HeaderQuatity; i++)
-//       xmlHttp.setRequestHeader(Main_Headers[i][0], Main_Headers[i][1]);
-
-//    xmlHttp.ontimeout = function() {};
-
-//    xmlHttp.onreadystatechange = function() {
-//        if (xmlHttp.readyState === 4) {
-//            if (xmlHttp.status === 200) {
-//                callbackSucess(xmlHttp.responseText);
-//                return;
-//            } else {
-//                calbackError();
-//            }
-//        }
-//    };
-
-//    xmlHttp.send(null);
-//}
 
 var Main_VideoSizeAll = ["384x216", "512x288", "640x360", "896x504", "1280x720"];
 var Main_GameSizeAll = ["179x250", "272x380", "340x475", "476x665", "773x1080"];

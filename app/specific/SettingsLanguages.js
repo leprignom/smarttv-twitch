@@ -115,7 +115,7 @@ var Languages_value = {
     "中文 [ZH]": {
         "values": ["off", "on"],
         "defaultValue": 1,
-        "set_values": "zh-cn,zh-tw"
+        "set_values": "zh"
     },
     "日本語 [JA]": {
         "values": ["off", "on"],
@@ -153,7 +153,7 @@ function Languages_init() {
 function Languages_exit() {
     document.body.removeEventListener("keydown", Languages_handleKeyDown);
     document.body.addEventListener("keydown", Settings_handleKeyDown, false);
-    Settings_ScrollTable();
+    Settings_ScrollTableReset();
     Main_ShowElement('settings_main');
     Main_HideElement('settings_lang');
     Languages_RemoveinputFocus();
@@ -288,6 +288,8 @@ function Languages_HideShowAll() {
 function Languages_handleKeyDown(event) {
     var key;
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             Languages_exit();
             break;

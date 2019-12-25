@@ -77,7 +77,7 @@ function Users_loadData() {
         '" class="stream_thumbnail_user" ><div class="stream_thumbnail_channel_img"></div>' +
         '<div  class="stream_thumbnail_user_text_holder">' +
         '<div class="stream_info_user_name">' + STR_USER_ADD +
-        '</div><div style="color:#FFFFFF;font-size: 7em; text-align: center; transform: translateY(-24.5vh);"><i class="icon-user-plus" ></i></div></div></div>';
+        '</div><div style="color:#FFFFFF;font-size: 17vh; text-align: center; transform: translateY(-24.5vh);"><i class="icon-user-plus" ></i></div></div></div>';
 
     row.appendChild(div);
 
@@ -255,6 +255,8 @@ function Users_handleKeyDown(event) {
     var i;
 
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             if (Users_isRemoveDialogShown()) Users_HideRemoveDialog();
             else if (Users_isUserDialogShown()) Users_HideUserDialog();
@@ -361,6 +363,7 @@ function Users_handleKeyDown(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
         case KEY_ENTER:
             // HideRemoveDialog set Users_RemoveCursor to 0, is better to hide befor remove, use temp var
             var temp_RemoveCursor = Users_RemoveCursor;

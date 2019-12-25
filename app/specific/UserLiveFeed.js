@@ -13,6 +13,8 @@ var UserSidePannel_LastPos = null;
 var UserLiveFeed_token = null;
 var UserLiveFeed_Feedid;
 var UserLiveFeed_FocusClass = 'feed_thumbnail_focused';
+var UserLiveFeed_PreventAddfocus = false;
+var UserLiveFeed_PreventHide = false;
 
 var UserLiveFeed_CheckNotifycation = false;
 var UserLiveFeed_WasLiveidObject = {};
@@ -25,7 +27,7 @@ var UserLiveFeed_ids = ['ulf_thumbdiv', 'ulf_img', 'ulf_infodiv', 'ulf_displayna
 
 var UserLiveFeed_side_ids = ['usf_thumbdiv', 'usf_img', 'usf_infodiv', 'usf_displayname', 'usf_streamtitle', 'usf_streamgame', 'usf_viwers', 'usf_quality', 'usf_cell', 'ulempty_', 'user_live_scroll'];
 
-function UserLiveFeed_StartLoad() {
+function UserLiveFeed_StartLoad(PreventAddfocus) {
     if (AddUser_UserIsSet()) {
         UserLiveFeed_clearHideFeed();
 
@@ -40,6 +42,7 @@ function UserLiveFeed_StartLoad() {
             UserLiveFeed_LastPos = null;
         }
 
+        UserLiveFeed_PreventAddfocus = PreventAddfocus;
         Main_empty('user_feed_scroll');
         Main_HideElement('side_panel_feed_thumb');
         Sidepannel_PosFeed = 0;
@@ -79,7 +82,7 @@ function UserLiveFeed_loadDataPrepare() {
 }
 
 function UserLiveFeed_loadChannels() {
-    var theUrl = 'https://api.twitch.tv/kraken/users/' + encodeURIComponent(AddUser_UsernameArray[0].id) +
+    var theUrl = Main_kraken_api + 'users/' + encodeURIComponent(AddUser_UsernameArray[0].id) +
         '/follows/channels?limit=100&offset=' + UserLiveFeed_loadChannelOffsset + '&sortby=created_at' + Main_TwithcV5Flag;
 
     BasexmlHttpGet(theUrl, UserLiveFeed_loadingDataTimeout, 2, null, UserLiveFeed_loadChannelLive, UserLiveFeed_loadDataError, false);
@@ -132,7 +135,7 @@ function UserLiveFeed_loadChannelLive(responseText) {
 }
 
 function UserLiveFeed_loadChannelUserLive() {
-    var theUrl = 'https://api.twitch.tv/kraken/streams/';
+    var theUrl = Main_kraken_api + 'streams/';
 
     if (UserLiveFeed_token) {
         theUrl += 'followed?';
@@ -276,14 +279,14 @@ function UserLiveFeed_loadDataSuccess(responseText) {
 
     UserLiveFeed_WasLiveidObject[AddUser_UsernameArray[0].name] = JSON.parse(JSON.stringify(UserLiveFeed_idObject));
 
-    //    doc.appendChild(UserLiveFeed_CreatFeed(i++,
-    //        ['ashlynn', 35618666, false],
-    //        ["https://static-cdn.jtvnw.net/ttv-static/404_preview-640x360.jpg",
-    //            'teste_name',
-    //            'game',
-    //            '1000',
-    //            'title'
-    //        ]));
+    // doc.appendChild(UserLiveFeed_CreatFeed(i++,
+    //     ['ashlynn', 35618666, false],
+    //     ["https://static-cdn.jtvnw.net/ttv-static/404_preview-640x360.jpg",
+    //         'ashlynn',
+    //         'test',
+    //         Main_addCommas(10),
+    //         'title'
+    //     ]));
 
     UserLiveFeed_loadDataSuccessFinish();
 }
@@ -419,7 +422,7 @@ function UserLiveFeed_isFeedShow() {
     return document.getElementById('user_feed').className.indexOf('user_feed_hide') === -1;
 }
 
-function UserLiveFeed_ShowFeed() {
+function UserLiveFeed_ShowFeed(PreventAddfocus) {
     var hasuser = AddUser_UserIsSet();
 
     if (hasuser) {
@@ -429,21 +432,44 @@ function UserLiveFeed_ShowFeed() {
 
     if (!hasuser || !UserLiveFeed_ThumbNull(0, UserLiveFeed_ids[0])) UserLiveFeed_status = false;
 
-    if (!UserLiveFeed_status && !UserLiveFeed_loadingData) UserLiveFeed_StartLoad();
+    if (!UserLiveFeed_status && !UserLiveFeed_loadingData) UserLiveFeed_StartLoad(PreventAddfocus);
 
     if (hasuser) {
-        Main_RemoveClass('user_feed', 'user_feed_hide');
-        UserLiveFeed_FeedAddFocus(true);
+        if (Main_isElementShowing('scene2')) UserLiveFeed_Show(PreventAddfocus);
+
+        if (!PreventAddfocus) UserLiveFeed_FeedAddFocus(true);
+        else {
+            UserLiveFeed_FeedRemoveFocus();
+            UserLiveFeed_FeedSetPos(true);
+        }
     }
 }
 
-function UserLiveFeed_Hide() {
-    Main_AddClass('user_feed', 'user_feed_hide');
+function UserLiveFeed_Show(notransition) {
+    if (notransition) {
+        var doc = document.getElementById('user_feed');
+        doc.style.transition = 'none';
+        doc.classList.remove('user_feed_hide');
+        Main_ready(function() {
+            if (Settings_Obj_default("app_animations")) doc.style.transition = '';
+        });
+    } else Main_RemoveClass('user_feed', 'user_feed_hide');
+}
+
+function UserLiveFeed_Hide(notransition) {
+    if (notransition) {
+        var doc = document.getElementById('user_feed');
+        doc.style.transition = 'none';
+        doc.classList.add('user_feed_hide');
+        Main_ready(function() {
+            if (Settings_Obj_default("app_animations")) doc.style.transition = '';
+        });
+    } else Main_AddClass('user_feed', 'user_feed_hide');
 }
 
 function UserLiveFeed_ResetFeedId() {
     UserLiveFeed_clearHideFeed();
-    UserLiveFeed_setHideFeed();
+    if (!UserLiveFeed_PreventHide) UserLiveFeed_setHideFeed();
 }
 
 function UserLiveFeed_clearHideFeed() {
@@ -454,9 +480,9 @@ function UserLiveFeed_setHideFeed() {
     if (UserLiveFeed_isFeedShow()) UserLiveFeed_Feedid = window.setTimeout(UserLiveFeed_Hide, 5500);
 }
 
-function UserLiveFeed_FeedRefresh() {
+function UserLiveFeed_FeedRefresh(PreventAddfocus) {
     UserLiveFeed_clearHideFeed();
-    if (!UserLiveFeed_loadingData) UserLiveFeed_StartLoad();
+    if (!UserLiveFeed_loadingData) UserLiveFeed_StartLoad(PreventAddfocus);
     else {
         window.setTimeout(function() {
             UserLiveFeed_loadingData = false;
@@ -468,7 +494,9 @@ function UserLiveFeed_FeedAddFocus(skipAnimation) {
     UserLiveFeed_ResetFeedId();
     if (!UserLiveFeed_ThumbNull(Play_FeedPos, UserLiveFeed_ids[0])) return;
 
-    Main_AddClass(UserLiveFeed_ids[0] + Play_FeedPos, UserLiveFeed_FocusClass);
+    if (!UserLiveFeed_PreventAddfocus) {
+        Main_AddClass(UserLiveFeed_ids[0] + Play_FeedPos, UserLiveFeed_FocusClass);
+    } else UserLiveFeed_PreventAddfocus = false;
 
     UserLiveFeed_FeedSetPos(skipAnimation);
 }
@@ -521,4 +549,8 @@ function UserLiveFeed_ThumbNull(y, thumbnail) {
 
 function UserLiveFeed_SetFeedPicText() {
     Main_innerHTML('icon_feed_refresh', '<div class="strokedelinebig" style="vertical-align: middle; display: inline-block;"><i class="icon-refresh" style="color: #FFFFFF; font-size: 115%; "></i></div><div class="strokedelinebig" style="vertical-align: middle; display: inline-block">' + STR_SPACE + STR_REFRESH + ':' + STR_UP + STR_SPACE + STR_SPACE + '</div>'); //<div class="strokedelinebig" style="vertical-align: middle; display: inline-block;"><i class="icon-pp" style="color: #FFFFFF; font-size: 115%; "></i></div><div class="strokedelinebig" style="vertical-align: middle; display: inline-block">' + STR_SPACE + STR_PICTURE_LIVE_FEED + '</div>');
+}
+
+function UserLiveFeed_SetHoldUp() {
+    Main_IconLoad('icon_feed_refresh', 'icon-refresh', STR_REFRESH + ':' + STR_HOLD_UP);
 }

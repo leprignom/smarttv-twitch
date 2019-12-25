@@ -367,7 +367,7 @@ function Screens_loadDataSuccessFinish() {
             //Force reset some values as I have reset the Never_run_new value and some things may crash
             if (Main_values.Never_run_new) {
                 Main_GoBefore = Main_Live;
-                Main_values.Play_WasPlaying = false;
+                Main_values.Play_WasPlaying = 0;
             }
 
             if (Settings_value.restor_playback.defaultValue && Main_values.Play_WasPlaying && inUseObj.status) {
@@ -434,6 +434,8 @@ function Screens_loadDataSuccessFinish() {
 function Screens_handleKeyControls(event) {
     switch (event.keyCode) {
         case KEY_ENTER:
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             Main_HideControlsDialog();
             Main_HideAboutDialog();
@@ -829,6 +831,8 @@ function Screens_handleKeyDown(event) {
                 else Sidepannel_Go(inUseObj.key_pgDown);
             }
             break;
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             if (!inUseObj.loadingData) inUseObj.key_exit();
             break;
@@ -864,6 +868,7 @@ function Screens_handleKeyDown(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
             inUseObj.key_play();
             break;
         case KEY_ENTER:
@@ -983,6 +988,8 @@ function Screens_PeriodRemoveFocus(pos) {
 
 function Screens_PeriodhandleKeyDown(event) {
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             Screens_PeriodRemoveFocus(Screens_PeriodDialogPos);
             Screens_PeriodDialogHide();
@@ -1006,6 +1013,7 @@ function Screens_PeriodhandleKeyDown(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
         case KEY_ENTER:
             Screens_PeriodDialogHide();
             if (inUseObj.periodPos !== Screens_PeriodDialogPos) {
@@ -1068,6 +1076,8 @@ function Screens_OffSetAddFocus(pos) {
 
 function Screens_OffSethandleKeyDown(event) {
     switch (event.keyCode) {
+        case KEY_RETURN_Q:
+        case KEY_KEYBOARD_BACKSPACE:
         case KEY_RETURN:
             Screens_OffSetDialogHide();
             break;
@@ -1088,6 +1098,7 @@ function Screens_OffSethandleKeyDown(event) {
         case KEY_PLAY:
         case KEY_PAUSE:
         case KEY_PLAYPAUSE:
+        case KEY_KEYBOARD_SPACE:
         case KEY_ENTER:
             Screens_OffSetDialogHide();
             if (inUseObj.extraoffset !== inUseObj.OffSetPos) {

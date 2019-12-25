@@ -144,7 +144,7 @@ function en_USLang() {
     STR_FALLOW = " Follow";
     STR_IS_SUB_NOOAUTH = " And you have not set a authentication key the app can\'t check yours sub status.";
     STR_IS_SUB_NOT_SUB = " And you are not a sub of this channel";
-    STR_IS_SUB_IS_SUB = " You are a sub of this channel but the app failed to authenticate contact the developer\'s email in About";
+    STR_IS_SUB_IS_SUB = " You are a sub of this channel but ";
     STR_OAUTH_FAIL = "Fail authentication check with the provider key, please check and try again";
     STR_OAUTH_FAIL_USER = "The added key doesn\'t belong to the user ";
     STR_NOKEY = "No user";
@@ -227,6 +227,7 @@ function en_USLang() {
     STR_AUTO_PLAY_NEXT = "Auto Play next clip";
     STR_SIDE_PANEL_SETTINGS = "Back to Main menu";
     STR_UP = " Press up";
+    STR_HOLD_UP = " Hold up";
     STR_LIVE_FEED = "Live Feed";
     STR_END_DIALOG_SETTINGS = "End dialog";
     STR_END_DIALOG_SETTINGS_SUMMARY = "Set the time that it will take for the stream/video/clip to end dialog taking action";
@@ -314,5 +315,7 @@ function en_USLang() {
     STR_ENTER_REFRESH = "Disable Hold enter to refresh";
     STR_RUNNINGTIME = "App running for:";
     STR_410_ERROR = "Unable to get stream link issue";
-    STR_410_FEATURING = "Third party app lost this featuring";
+    STR_410_FEATURING = "Third party app are current without access for this featuring.";
+    STR_CLICK_UNFALLOW = "(Click to unfallow)";
+    STR_CLICK_FALLOW = "(Click to fallow)";
 }
